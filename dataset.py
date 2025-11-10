@@ -14,31 +14,84 @@ class HandwrittenWords(Dataset):
         self.start_symbol   = start_symbol = '<sos>'
         self.stop_symbol    = stop_symbol = '<eos>'
 
+        self.pad_symbol_coord = 1e6
+        self.stop_symbol_coord = 2e6
+
+
         self.data = dict()
         with open(filename, 'rb') as fp:
             self.data = pickle.load(fp)
 
-        # Extraction des symboles
-        # À compléter
-        
-        # Ajout du padding aux séquences
-        # À compléter
-        
+        maxT = max(len(seq[1][0]) for seq in self.data)
+        maxLabel = max(len(seq[0]) for seq in self.data)
+
+        wantedLenT = maxT + 1
+
+        wantedLenLabel = maxLabel + 1
+        self.maxlen = wantedLenLabel
+
+        self.symb2int = dict()
+        self.symb2int = {start_symbol: 0, stop_symbol: 1, pad_symbol: 2}
+        cpt_symb_fr = 3
+
+
+
+        for i, dataentry in enumerate(self.data):
+
+            inputseq = dataentry[1]
+            label = dataentry[0]
+            label = list(label)
+
+
+            for sym in label:
+                if sym not in self.symb2int:
+                    self.symb2int[sym] = cpt_symb_fr
+                    cpt_symb_fr += 1
+
+
+            inputseq = np.append(inputseq, [[self.stop_symbol_coord], [self.stop_symbol_coord]], axis=1)
+
+            label.append(self.stop_symbol)
+            label = np.array(label)
+
+            paddingArray = np.full([2,wantedLenT-inputseq.shape[1]],self.pad_symbol_coord)
+            inputseq = np.append(inputseq,paddingArray,axis=1)
+
+            paddingArray = np.full([wantedLenLabel - label.shape[0]],self.pad_symbol)
+
+            label = np.append(label,paddingArray)
+
+
+            self.data[i] = (label,inputseq)
+
+        self.int2symb = dict()
+        self.int2symb =  {v:k for k,v in self.symb2int.items()}
+
+        self.dict_size = len(self.symb2int)
+
+        pass
+
+
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
         # À compléter
-        return None, None
+        target = self.data[idx][0]
+        traget_int = [self.symb2int[i] for i in target]
+
+        return torch.tensor(self.data[idx][1], dtype=torch.float32) ,torch.tensor(traget_int)
 
     def visualisation(self, idx):
-        # Visualisation des échantillons
-        # À compléter (optionel)
+
         pass
         
 
 if __name__ == "__main__":
     # Code de test pour aider à compléter le dataset
     a = HandwrittenWords('data_trainval.p')
+    call = a[0]
+
+    pass
     for i in range(10):
         a.visualisation(np.random.randint(0, len(a)))

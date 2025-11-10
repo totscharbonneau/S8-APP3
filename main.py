@@ -20,9 +20,15 @@ if __name__ == '__main__':
     gen_test_images = True     # Génération images test?
     seed = 1                # Pour répétabilité
     n_workers = 0           # Nombre de threads pour chargement des données (mettre à 0 sur Windows)
+    lr = 0.01
+
 
     # À compléter
-    n_epochs = 0
+    n_epochs = 20
+    train_val_split = 0.7
+    batch_size = 100
+    n_hidden = 20               # Nombre de neurones caches par couche
+    n_layers = 2               # Nombre de de couches
 
     # ---------------- Fin Paramètres et hyperparamètres ----------------#
 
@@ -36,18 +42,20 @@ if __name__ == '__main__':
 
     # Instanciation de l'ensemble de données
     # À compléter
+    dataset = HandwrittenWords("data_trainval.p")
 
-    
-    # Séparation de l'ensemble de données (entraînement et validation)
-    # À compléter
-   
+    n_train_samp = int(len(dataset)*train_val_split)
+    n_val_samp = len(dataset)-n_train_samp
+    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [n_train_samp, n_val_samp])
 
-    # Instanciation des dataloaders
-    # À compléter
+
+    dataload_train = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=n_workers)
+    dataload_val = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=n_workers)
 
 
     # Instanciation du model
-    # À compléter
+    model = trajectory2seq_elman(hidden_dim=n_hidden,n_layers=n_layers,int2symb=dataset.int2symb, \
+                                 symb2int=dataset.symb2int,dict_size=dataset.dict_size,device=device,maxlen=dataset.maxlen)
 
 
     # Initialisation des variables
@@ -57,11 +65,34 @@ if __name__ == '__main__':
 
         # Fonction de coût et optimizateur
         # À compléter
+        train_dist = []  # Historique des distances
+        train_loss = []  # Historique des coûts
+        fig, ax = plt.subplots(1)  # Initialisation figure
+
+        criterion = nn.CrossEntropyLoss(ignore_index=2)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
 
         for epoch in range(1, n_epochs + 1):
             # Entraînement
-            # À compléter
-            
+            running_loss_train = 0
+            dist = 0
+
+            for batch_idx, data in enumerate(dataload_train):
+                input_seq, target_seq = data
+
+                # input_seq = input_seq.to(device).long()
+                target_seq = target_seq.to(device).long()
+
+                optimizer.zero_grad()
+
+                output, hidden = model(input_seq)
+                loss = criterion(output, target_seq)
+
+                loss.backward()
+                optimizer.step()
+                running_loss_train += loss.item()
+
             # Validation
             # À compléter
 
