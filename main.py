@@ -147,7 +147,7 @@ if __name__ == '__main__':
                 # visualizator(input_seq,target_seq,output)
 
 
-                loss = criterion(output.reshape(-1,29,6), target_seq)
+                loss = criterion(output.permute(0, 2, 1), target_seq)
 
                 loss.backward()
                 optimizer.step()
@@ -190,7 +190,7 @@ if __name__ == '__main__':
 
                     output, hidden = model(test_size)
 
-                    loss = criterion(output.reshape(-1, 29, 6), target_seq)
+                    loss = criterion(output.permute(0, 2, 1), target_seq)
                     running_loss_val += loss.item()
 
                     output_list = torch.argmax(output, dim=-1).detach().cpu().tolist()
