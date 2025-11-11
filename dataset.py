@@ -73,10 +73,13 @@ class HandwrittenWords(Dataset):
 
 
     def __len__(self):
+
         return len(self.data)
 
     def __getitem__(self, idx):
         # À compléter
+
+
         target = self.data[idx][0]
         traget_int = [self.symb2int[i] for i in target]
 

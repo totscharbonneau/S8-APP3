@@ -15,12 +15,12 @@ if __name__ == '__main__':
     # ---------------- Paramètres et hyperparamètres ----------------#
     force_cpu = False           # Forcer a utiliser le cpu?
     trainning = True           # Entrainement?
-    test = True                # Test?
+    test = False                # Test?
     learning_curves = True     # Affichage des courbes d'entrainement?
-    gen_test_images = True     # Génération images test?
+    gen_test_images = False     # Génération images test?
     seed = 1                # Pour répétabilité
     n_workers = 0           # Nombre de threads pour chargement des données (mettre à 0 sur Windows)
-    lr = 0.01
+    lr = 0.001
 
 
     # À compléter
@@ -39,6 +39,7 @@ if __name__ == '__main__':
 
     # Choix du device
     device = torch.device("cuda" if torch.cuda.is_available() and not force_cpu else "cpu")
+    print(device)
 
     # Instanciation de l'ensemble de données
     # À compléter
@@ -53,10 +54,20 @@ if __name__ == '__main__':
     dataload_val = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=n_workers)
 
 
+    print('Number of epochs : ', n_epochs)
+    print('Training data : ', len(dataset))
+    print('Taille dictionnaires: ', dataset.dict_size)
+    print('\n')
+
+
     # Instanciation du model
-    model = trajectory2seq_elman(hidden_dim=n_hidden,n_layers=n_layers,int2symb=dataset.int2symb, \
+    model = trajectory2seq_gru(hidden_dim=n_hidden,n_layers=n_layers,int2symb=dataset.int2symb, \
                                  symb2int=dataset.symb2int,dict_size=dataset.dict_size,device=device,maxlen=dataset.maxlen)
 
+    model = model.to(device)
+    # Afficher le résumé du model
+    print('Model : \n', model, '\n')
+    print('Nombre de poids: ', sum([i.numel() for i in model.parameters() ]))
 
     # Initialisation des variables
     # À compléter
@@ -81,17 +92,52 @@ if __name__ == '__main__':
             for batch_idx, data in enumerate(dataload_train):
                 input_seq, target_seq = data
 
-                # input_seq = input_seq.to(device).long()
+                input_seq = input_seq.to(device)
                 target_seq = target_seq.to(device).long()
 
                 optimizer.zero_grad()
 
-                output, hidden = model(input_seq)
-                loss = criterion(output, target_seq)
+                test_size = input_seq.reshape((-1,458,2))
+
+                output, hidden = model(test_size)
+
+                loss = criterion(output.reshape(-1,29,6), target_seq)
 
                 loss.backward()
                 optimizer.step()
                 running_loss_train += loss.item()
+
+                output_list = torch.argmax(output, dim=-1).detach().cpu().tolist()
+                target_seq_list = target_seq.cpu().tolist()
+
+                for i in range(batch_size):
+                    a = target_seq_list[i]
+                    b = output_list[i]
+                    Ma = a.index(1) # longueur mot a
+                    Mb = b.index(1) if 1 in b else len(b)# longueur mot b
+                    dist += edit_distance(a[:Ma],b[:Mb])/batch_size
+
+
+                print('Train - Epoch: {}/{} [{}/{} ({:.0f}%)] Average Loss: {:.6f} Average Edit Distance: {:.6f}'.format(
+                    epoch, n_epochs, batch_idx * batch_size, len(dataload_train.dataset),
+                    100. * batch_idx *  batch_size / len(dataload_train.dataset), running_loss_train / (batch_idx + 1),
+                    dist/len(dataload_train)), end='\r')
+
+            print('Train - Epoch: {}/{} [{}/{} ({:.0f}%)] Average Loss: {:.6f} Average Edit Distance: {:.6f}'.format(
+                    epoch, n_epochs, (batch_idx+1) * batch_size, len(dataload_train.dataset),
+                    100. * (batch_idx+1) *  batch_size / len(dataload_train.dataset), running_loss_train / (batch_idx + 1),
+                    dist/len(dataload_train)), end='\r')
+
+            if learning_curves:
+                train_loss.append(running_loss_train/len(dataload_train))
+                train_dist.append(dist/len(dataload_train))
+                ax.cla()
+                ax.plot(train_loss, label='training loss')
+                ax.plot(train_dist, label='training distance')
+                ax.legend()
+                plt.draw()
+                plt.pause(0.01)
+
 
             # Validation
             # À compléter
@@ -104,10 +150,7 @@ if __name__ == '__main__':
 
 
             # Affichage
-            if learning_curves:
-                # visualization
-                # À compléter
-                pass
+
 
     if test:
         # Évaluation
