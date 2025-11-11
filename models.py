@@ -91,9 +91,9 @@ class trajectory2seq_gru(nn.Module):
 
         self.embedding_encode = nn.Linear(2, hidden_dim)
 
-        self.encoder_layer = nn.GRU(self.hidden_dim,self.hidden_dim,self.n_layers,batch_first=True)
+        self.encoder_layer = nn.GRU(self.hidden_dim,self.hidden_dim,self.n_layers,batch_first=True,bidirectional=True)
 
-
+        self.hidden_projection = nn.Linear(hidden_dim * 2, hidden_dim)
 
         self.embedding_decode = nn.Embedding(self.dict_size,hidden_dim)
         self.decoder_layer = nn.GRU(self.hidden_dim, self.hidden_dim, n_layers, batch_first=True)
@@ -102,8 +102,8 @@ class trajectory2seq_gru(nn.Module):
 
         # Couches pour attention
         self.softmax = nn.Softmax(dim=-1)
-        self.att_combine = nn.Linear(2 * self.hidden_dim, self.hidden_dim)
-
+        self.att_combine = nn.Linear(3 * self.hidden_dim, self.hidden_dim)
+        self.query_projection = nn.Linear(self.hidden_dim, self.hidden_dim * 2)
 
         # Couche dense pour la sortie
         # À compléter
@@ -111,6 +111,8 @@ class trajectory2seq_gru(nn.Module):
 
 
     def attentionModule(self,query,values):
+
+        query = self.query_projection.forward(query)
 
         values_switch = values.reshape(-1,values.shape[2],values.shape[1])
         step1 = torch.bmm(query,values_switch)
@@ -126,6 +128,11 @@ class trajectory2seq_gru(nn.Module):
         hidden = None
         x_encoded = self.embedding_encode(x)
         out, hidden = self.encoder_layer.forward(x_encoded,hidden)
+
+        hidden = hidden.view(self.n_layers, 2, -1, self.hidden_dim)
+        hidden = torch.cat([hidden[:, 0], hidden[:, 1]], dim=2)
+
+        hidden = self.hidden_projection(hidden)
 
         return out, hidden
 
