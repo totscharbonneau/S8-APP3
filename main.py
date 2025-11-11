@@ -16,12 +16,12 @@ class predictor_visuliser():
         self.int2sym = int2sym
 
     def __call__(self, input_seq, target_seq, prediction):
-        input_seq = input_seq[0]
-        target_seq = target_seq[0].cpu().numpy()
+        input_seq = input_seq
+        target_seq = target_seq.cpu().numpy()
         prediction = prediction[0]
         prediction = prediction.argmax(dim=1)
         prediction = prediction.cpu().numpy()
-        target_string = [self.int2sym[i] for i in target_seq]
+        target_string = [self.int2sym[i] for i in target_seq[0]]
 
         prediction_string = [self.int2sym[i] for i in prediction]
 
@@ -54,11 +54,11 @@ if __name__ == '__main__':
 
     # ---------------- Paramètres et hyperparamètres ----------------#
     force_cpu = False           # Forcer a utiliser le cpu?
-    trainning = True           # Entrainement?
-    test = False                # Test?
+    trainning = False           # Entrainement?
+    test = True                # Test?
     learning_curves = True     # Affichage des courbes d'entrainement?
     gen_test_images = False     # Génération images test?
-    seed = 3                # Pour répétabilité
+    seed = 88                # Pour répétabilité
     n_workers = 0           # Nombre de threads pour chargement des données (mettre à 0 sur Windows)
     lr = 0.005
 
@@ -66,9 +66,9 @@ if __name__ == '__main__':
     # À compléter
     n_epochs = 100
     train_val_split = 0.7
-    batch_size = 100
+    batch_size = 50
     n_hidden = 20               # Nombre de neurones caches par couche
-    n_layers = 3               # Nombre de de couches
+    n_layers = 2               # Nombre de de couches
 
     # ---------------- Fin Paramètres et hyperparamètres ----------------#
 
@@ -233,22 +233,50 @@ if __name__ == '__main__':
             # print()
 
     if test:
-        # Évaluation
-        # À compléter
 
-        # Charger les données de tests
-        # À compléter
+        viz = predictor_visuliser(dataset.int2symb)
 
-        # Affichage de l'attention
-        # À compléter (si nécessaire)
+        model.load_state_dict(torch.load('best_model.pth'))
+        model.eval()
+        test_dataset = HandwrittenWords("data_test.p")
+        test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=n_workers)
+        running_loss_test = 0
+        dist_test = 0
 
-        # Affichage des résultats de test
-        # À compléter
-        
-        # Affichage de la matrice de confusion
-        # À compléter
+        criterion = nn.CrossEntropyLoss(ignore_index=2)
 
-        pass
+        with torch.no_grad():
+            for i in range(10):
+                input_seq, target_seq = test_dataset[np.random.randint(0,len(test_dataset))]
+
+                input_seq = input_seq.to(device)
+                target_seq = target_seq.to(device).long()
+                target_seq = target_seq.unsqueeze(0)
+                test_size = input_seq.reshape((-1, 458, 2))
+
+                output, hidden = model(test_size)
+
+                viz(input_seq,target_seq,output)
+
+                loss = criterion(output.permute(0, 2, 1), target_seq)
+
+                print(loss.item())
+                running_loss_test += loss.item()
+
+                output_list = torch.argmax(output, dim=-1).detach().cpu().tolist()
+                target_seq_list = target_seq.cpu().tolist()
+
+                for i in range(len(output_list)):
+                    a = target_seq_list[i]
+                    b = output_list[i]
+                    Ma = a.index(1) if 1 in a else len(a)
+                    Mb = b.index(1) if 1 in b else len(b)
+                    dist_test += edit_distance(a[:Ma], b[:Mb]) / len(output_list)
+
+        avg_test_loss = running_loss_test / len(test_dataloader)
+        avg_test_dist = dist_test / len(test_dataloader)
+
+        print('Test Results: Loss: {:.6f}, Edit Distance: {:.6f}'.format(avg_test_loss, avg_test_dist))
 
 
 

@@ -27,12 +27,18 @@ class HandwrittenWords(Dataset):
 
         wantedLenT = maxT + 1
 
+        wantedLenT = 458
+
         wantedLenLabel = maxLabel + 1
+
+        wantedLenLabel = 6
 
         self.maxlen = wantedLenLabel
 
         self.symb2int = dict()
         self.symb2int = {start_symbol: 0, stop_symbol: 1, pad_symbol: 2}
+        for i, c in enumerate("abcdefghijklmnopqrstuvwxyz", start=3):
+            self.symb2int[c] = i
         cpt_symb_fr = 3
 
         minX = 1000
@@ -54,11 +60,11 @@ class HandwrittenWords(Dataset):
             if liveminX < minX:
                 minX = liveminX
             if liveminY < minY:
-                minY = livemaxY
+                minY = liveminY
             if livemaxX > maxX:
                 maxX = livemaxX
-            if livemaxY > minY:
-                maxY = liveminY
+            if livemaxY > maxY:
+                maxY = livemaxY
 
 
             for sym in label:
@@ -83,6 +89,10 @@ class HandwrittenWords(Dataset):
 
             self.data[i] = (label,inputseq)
 
+        maxX = 2976.344897715093
+        maxY = 678.7003612207204
+        minX = -226.13771862085716
+        minY = -588.6337252912118
 
         for i, dataentry in enumerate(self.data):
             inputseq = dataentry[1]
