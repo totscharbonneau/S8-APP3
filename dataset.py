@@ -28,6 +28,7 @@ class HandwrittenWords(Dataset):
         wantedLenT = maxT + 1
 
         wantedLenLabel = maxLabel + 1
+
         self.maxlen = wantedLenLabel
 
         self.symb2int = dict()
@@ -48,13 +49,14 @@ class HandwrittenWords(Dataset):
                     self.symb2int[sym] = cpt_symb_fr
                     cpt_symb_fr += 1
 
-
-            inputseq = np.append(inputseq, [[self.stop_symbol_coord], [self.stop_symbol_coord]], axis=1)
-
             label.append(self.stop_symbol)
             label = np.array(label)
 
-            paddingArray = np.full([2,wantedLenT-inputseq.shape[1]],self.pad_symbol_coord)
+            lastx = inputseq[0][-1]
+            lasty = inputseq[1][-1]
+
+            N = wantedLenT - inputseq.shape[1]
+            paddingArray = np.tile(np.array([[lastx], [lasty]]), (1, N))
             inputseq = np.append(inputseq,paddingArray,axis=1)
 
             paddingArray = np.full([wantedLenLabel - label.shape[0]],self.pad_symbol)
@@ -69,7 +71,7 @@ class HandwrittenWords(Dataset):
 
         self.dict_size = len(self.symb2int)
 
-        pass
+
 
 
     def __len__(self):
