@@ -23,28 +23,29 @@ def edit_distance(a,b):
 
     return dp[len_a - 1][len_b - 1]
 
-def confusion_matrix(true, pred, ignore=["<pad>", "<sos>", "<eos>"]):
+def confusion_matrix(true, pred, ignore=[0, 1, 2], num_classes=None): # Ignore padding and start/end tokens
     # Calcul de la matrice de confusion
 
-    # À compléter
-    matrix_dict = dict()
-    if len(true) != len(pred):
-        return None
+    all_true = []
+    all_pred = []
     for i in range(len(true)):
         for j in range(min(len(true[i]), len(pred[i]))):
-            if true[i][j] not in ignore and pred[i][j] not in ignore:
-                if true[i][j] not in matrix_dict:
-                    matrix_dict[true[i][j]] = []
-                matrix_dict[true[i][j]].append(pred[i][j])
-    classes = list(matrix_dict)
-    classes.sort()
-    cm = np.zeros((len(classes), len(classes)), dtype=int)
-    for i in range(len(classes)):
-        for guess in matrix_dict[classes[i]]:
-            if guess not in classes:
-                continue
-            j = classes.index(guess)
-            cm[i][j] += 1
-    cm = cm[:-1, :-1]
-    classes = classes[:-1]
+            if true[i][j] not in ignore:  # only ignore as input
+                all_true.append(true[i][j])
+                all_pred.append(pred[i][j])
+
+    # automatically infer class count if not provided
+    if num_classes is None:
+        num_classes = max(max(all_true, default=0), max(all_pred, default=0)) + 1
+
+    # initialize full confusion matrix
+    cm = np.zeros((num_classes, num_classes), dtype=int)
+
+    # fill matrix
+    for t, p in zip(all_true, all_pred):
+        cm[t, p] += 1
+
+    classes = list(range(num_classes))
+    cm = cm[3:, 3:] 
+    classes = classes[3:]
     return cm, classes

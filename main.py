@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
 
     # Instanciation du model
-    model = trajectory2seq_elman(hidden_dim=n_hidden,n_layers=n_layers,int2symb=dataset.int2symb, \
+    model = trajectory2seq_gru(hidden_dim=n_hidden,n_layers=n_layers,int2symb=dataset.int2symb, \
                                  symb2int=dataset.symb2int,dict_size=dataset.dict_size,device=device,maxlen=dataset.maxlen)
 
     model = model.to(device)
@@ -185,7 +185,7 @@ if __name__ == '__main__':
                     100. * (batch_idx+1) *  batch_size / len(dataload_train.dataset), running_loss_train / (batch_idx + 1),
                     dist/len(dataload_train)), end='\r')
 
-            # ✅ VALIDATION
+            # VALIDATION
             model.eval()  # Set model to evaluation mode
             running_loss_val = 0
             dist_val = 0
@@ -262,8 +262,8 @@ if __name__ == '__main__':
         all_targets = []
 
         with torch.no_grad():
-            for i in range(10):
-                input_seq, target_seq = test_dataset[np.random.randint(0,len(test_dataset))]
+            for i in range(len(test_dataset)):
+                input_seq, target_seq = test_dataset[i]
 
                 input_seq = input_seq.to(device)
                 target_seq = target_seq.to(device).long()
@@ -304,15 +304,15 @@ if __name__ == '__main__':
             plt.figure()
             plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
             plt.colorbar()
-            plt.xticks(range(len(classes)), [chr(96 + c) for c in classes], rotation=45)
-            plt.yticks(range(len(classes)), [chr(96 + c) for c in classes])
+            plt.xticks(range(len(classes)), [chr(94 + c) for c in classes], rotation=45)
+            plt.yticks(range(len(classes)), [chr(94 + c) for c in classes])
             plt.xlabel('Predicted label')
             plt.ylabel('True label')
             plt.title('Confusion Matrix')
             plt.show()           
 
-        avg_test_loss = running_loss_test / len(test_dataloader)
-        avg_test_dist = dist_test / len(test_dataloader)
+        avg_test_loss = running_loss_test / len(test_dataset)
+        avg_test_dist = dist_test / len(test_dataset)
 
         print('Test Results: Loss: {:.6f}, Edit Distance: {:.6f}'.format(avg_test_loss, avg_test_dist))
 
