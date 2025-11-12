@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
     # ---------------- Paramètres et hyperparamètres ----------------#
     force_cpu = False           # Forcer a utiliser le cpu?
-    trainning = True           # Entrainement?
+    trainning = False           # Entrainement?
     test = True                # Test?
     learning_curves = True     # Affichage des courbes d'entrainement?
     gen_test_images = False     # Génération images test?
@@ -249,12 +249,17 @@ if __name__ == '__main__':
 
         model.load_state_dict(torch.load('best_model.pth'))
         model.eval()
+        # model = torch.load('best_model.pth', weights_only=True)
+        # model = model.to(device)
         test_dataset = HandwrittenWords("data_test.p")
         test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=n_workers)
         running_loss_test = 0
         dist_test = 0
 
         criterion = nn.CrossEntropyLoss(ignore_index=2)
+        
+        all_predictions = []
+        all_targets = []
 
         with torch.no_grad():
             for i in range(10):
@@ -267,7 +272,7 @@ if __name__ == '__main__':
 
                 output, hidden = model(test_size)
 
-                viz(input_seq,target_seq,output)
+                # viz(input_seq,target_seq,output)
 
                 loss = criterion(output.permute(0, 2, 1), target_seq)
 
@@ -277,12 +282,34 @@ if __name__ == '__main__':
                 output_list = torch.argmax(output, dim=-1).detach().cpu().tolist()
                 target_seq_list = target_seq.cpu().tolist()
 
+                all_predictions.append(output_list[0])
+                all_targets.append(target_seq_list[0])
+
                 for i in range(len(output_list)):
                     a = target_seq_list[i]
                     b = output_list[i]
                     Ma = a.index(1) if 1 in a else len(a)
                     Mb = b.index(1) if 1 in b else len(b)
                     dist_test += edit_distance(a[:Ma], b[:Mb]) / len(output_list)
+            import matplotlib.pyplot as plt
+            
+            # Flatten the lists of predictions and targets
+            # flat_predictions = [item for sublist in all_predictions for item in sublist]
+            # flat_targets = [item for sublist in all_targets for item in sublist]
+
+            # Compute the confusion matrix
+            cm, classes = confusion_matrix(all_targets, all_predictions)
+
+            # Plot the confusion matrix
+            plt.figure()
+            plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+            plt.colorbar()
+            plt.xticks(range(len(classes)), classes, rotation=45)
+            plt.yticks(range(len(classes)), classes)
+            plt.xlabel('Predicted label')
+            plt.ylabel('True label')
+            plt.title('Confusion Matrix')
+            plt.show()           
 
         avg_test_loss = running_loss_test / len(test_dataloader)
         avg_test_dist = dist_test / len(test_dataloader)

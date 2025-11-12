@@ -41,6 +41,8 @@ def confusion_matrix(true, pred, ignore=["<pad>", "<sos>", "<eos>"]):
     cm = np.zeros((len(classes), len(classes)), dtype=int)
     for i in range(len(classes)):
         for guess in matrix_dict[classes[i]]:
+            if guess not in classes:
+                continue
             j = classes.index(guess)
             cm[i][j] += 1
 
