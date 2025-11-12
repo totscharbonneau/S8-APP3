@@ -23,9 +23,18 @@ def edit_distance(a,b):
 
     return dp[len_a - 1][len_b - 1]
 
-def confusion_matrix(true, pred, ignore=[]):
+def confusion_matrix(true, pred, ignore=["<pad>", "<sos>", "<eos>"]):
     # Calcul de la matrice de confusion
 
     # À compléter
-
-    return None
+    matrix = dict()
+    labels = set(true).union(set(pred))
+    for label1 in labels:
+        matrix[label1] = dict()
+        for label2 in labels:
+            matrix[label1][label2] = 0
+    for t, p in zip(true, pred):
+        if t in ignore:
+            continue
+        matrix[t][p] += 1
+    return matrix
