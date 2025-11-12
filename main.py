@@ -24,6 +24,17 @@ class predictor_visuliser():
         target_string = [self.int2sym[i] for i in target_seq[0]]
 
         prediction_string = [self.int2sym[i] for i in prediction]
+        if prediction_string:
+            last_type = type(prediction_string[-1])
+            one_token = 1 if last_type is int else '1'
+            two_token = 2 if last_type is int else '2'
+            i = len(prediction_string) - 1
+            count = 0
+            while i >= 0 and prediction_string[i] == one_token:
+                count += 1
+                i -= 1
+            if count > 1:
+                prediction_string = prediction_string[:i+1] + [two_token]
 
         target_string = "Target : " + "".join(target_string)
         prediction_string ="Prediction : " + "".join(prediction_string)
@@ -54,7 +65,7 @@ if __name__ == '__main__':
 
     # ---------------- Paramètres et hyperparamètres ----------------#
     force_cpu = False           # Forcer a utiliser le cpu?
-    trainning = False           # Entrainement?
+    trainning = True           # Entrainement?
     test = True                # Test?
     learning_curves = True     # Affichage des courbes d'entrainement?
     gen_test_images = False     # Génération images test?

@@ -27,14 +27,21 @@ def confusion_matrix(true, pred, ignore=["<pad>", "<sos>", "<eos>"]):
     # Calcul de la matrice de confusion
 
     # À compléter
-    matrix = dict()
-    labels = set(true).union(set(pred))
-    for label1 in labels:
-        matrix[label1] = dict()
-        for label2 in labels:
-            matrix[label1][label2] = 0
-    for t, p in zip(true, pred):
-        if t in ignore:
-            continue
-        matrix[t][p] += 1
-    return matrix
+    matrix_dict = dict()
+    if len(true) != len(pred):
+        return None
+    for i in range(len(true)):
+        for j in range(min(len(true[i]), len(pred[i]))):
+            if true[i][j] not in ignore and pred[i][j] not in ignore:
+                if true[i][j] not in matrix_dict:
+                    matrix_dict[true[i][j]] = []
+                matrix_dict[true[i][j]].append(pred[i][j])
+    classes = list(matrix_dict)
+    classes.sort()
+    cm = np.zeros((len(classes), len(classes)), dtype=int)
+    for i in range(len(classes)):
+        for guess in matrix_dict[classes[i]]:
+            j = classes.index(guess)
+            cm[i][j] += 1
+
+    return cm, classes

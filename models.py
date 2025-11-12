@@ -162,6 +162,13 @@ class trajectory2seq_gru(nn.Module):
 
             vec_out[:, i, :] = logits.squeeze(1)
 
+            if torch.all(vec_in == self.symb2int['<eos>']):
+                remaining = self.maxlen - (i + 1)
+                if remaining > 0:
+                    vec_out[:, i+1:, :] = 0.0               # clear logits
+                    vec_out[:, i+1:, self.symb2int['<pad>']] = 1.0  # set <pad>
+                break
+
         return vec_out, hidden
 
     def forward(self, x):
