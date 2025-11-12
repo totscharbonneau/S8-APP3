@@ -45,5 +45,6 @@ def confusion_matrix(true, pred, ignore=["<pad>", "<sos>", "<eos>"]):
                 continue
             j = classes.index(guess)
             cm[i][j] += 1
-
+    cm = cm[:-1, :-1]
+    classes = classes[:-1]
     return cm, classes

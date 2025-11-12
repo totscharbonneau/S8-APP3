@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
 
     # Instanciation du model
-    model = trajectory2seq_gru(hidden_dim=n_hidden,n_layers=n_layers,int2symb=dataset.int2symb, \
+    model = trajectory2seq_elman(hidden_dim=n_hidden,n_layers=n_layers,int2symb=dataset.int2symb, \
                                  symb2int=dataset.symb2int,dict_size=dataset.dict_size,device=device,maxlen=dataset.maxlen)
 
     model = model.to(device)
@@ -304,8 +304,8 @@ if __name__ == '__main__':
             plt.figure()
             plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
             plt.colorbar()
-            plt.xticks(range(len(classes)), classes, rotation=45)
-            plt.yticks(range(len(classes)), classes)
+            plt.xticks(range(len(classes)), [chr(96 + c) for c in classes], rotation=45)
+            plt.yticks(range(len(classes)), [chr(96 + c) for c in classes])
             plt.xlabel('Predicted label')
             plt.ylabel('True label')
             plt.title('Confusion Matrix')
