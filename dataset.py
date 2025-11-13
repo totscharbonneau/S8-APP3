@@ -14,9 +14,6 @@ class HandwrittenWords(Dataset):
         self.start_symbol   = start_symbol = '<sos>'
         self.stop_symbol    = stop_symbol = '<eos>'
 
-        self.pad_symbol_coord = 1e6
-        self.stop_symbol_coord = 2e6
-
 
         self.data = dict()
         with open(filename, 'rb') as fp:
@@ -111,12 +108,6 @@ class HandwrittenWords(Dataset):
         self.int2symb =  {v:k for k,v in self.symb2int.items()}
 
         self.dict_size = len(self.symb2int)
-
-
-
-        # maxX
-        # minY
-        # maxY
 
 
 

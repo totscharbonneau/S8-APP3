@@ -54,11 +54,11 @@ if __name__ == '__main__':
 
     # ---------------- Paramètres et hyperparamètres ----------------#
     force_cpu = False           # Forcer a utiliser le cpu?
-    trainning = False           # Entrainement?
+    trainning = True           # Entrainement?
     test = True                # Test?
     learning_curves = True     # Affichage des courbes d'entrainement?
     gen_test_images = False     # Génération images test?
-    seed = 88                # Pour répétabilité
+    seed = 7
     n_workers = 0           # Nombre de threads pour chargement des données (mettre à 0 sur Windows)
     lr = 0.005
 
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     n_epochs = 100
     train_val_split = 0.7
     batch_size = 50
-    n_hidden = 20               # Nombre de neurones caches par couche
+    n_hidden = 15               # Nombre de neurones caches par couche
     n_layers = 2               # Nombre de de couches
 
     # ---------------- Fin Paramètres et hyperparamètres ----------------#
@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
 
     # Instanciation du model
-    model = trajectory2seq_gru(hidden_dim=n_hidden,n_layers=n_layers,int2symb=dataset.int2symb, \
+    model = trajectory2seq_gru_att_bi(hidden_dim=n_hidden,n_layers=n_layers,int2symb=dataset.int2symb, \
                                  symb2int=dataset.symb2int,dict_size=dataset.dict_size,device=device,maxlen=dataset.maxlen)
 
     model = model.to(device)
@@ -174,7 +174,7 @@ if __name__ == '__main__':
                     100. * (batch_idx+1) *  batch_size / len(dataload_train.dataset), running_loss_train / (batch_idx + 1),
                     dist/len(dataload_train)), end='\r')
 
-            # ✅ VALIDATION
+            # VALIDATION
             model.eval()  # Set model to evaluation mode
             running_loss_val = 0
             dist_val = 0
@@ -223,7 +223,11 @@ if __name__ == '__main__':
                 ax.legend()
                 ax.set_xlabel('Epoch')
                 ax.set_ylabel('Loss / Distance')
-                plt.draw()
+
+                if epoch < n_epochs:
+                    plt.draw()
+                else:
+                    plt.show()
                 plt.pause(0.01)
 
             if epoch == 1 or avg_val_loss < min(val_loss[:-1] if len(val_loss) > 1 else [float('inf')]):
@@ -236,8 +240,10 @@ if __name__ == '__main__':
 
         viz = predictor_visuliser(dataset.int2symb)
 
-        model.load_state_dict(torch.load('best_model.pth'))
+        model.load_state_dict(torch.load('best_model_gru_att_bi.pth'))
         model.eval()
+        # model = torch.load('best_model.pth', weights_only=True)
+        # model = model.to(device)
         test_dataset = HandwrittenWords("data_test.p")
         test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=n_workers)
         running_loss_test = 0
@@ -245,9 +251,13 @@ if __name__ == '__main__':
 
         criterion = nn.CrossEntropyLoss(ignore_index=2)
 
+        all_predictions = []
+        all_targets = []
+
         with torch.no_grad():
-            for i in range(10):
-                input_seq, target_seq = test_dataset[np.random.randint(0,len(test_dataset))]
+            for i in range(5):
+                # input_seq, target_seq = test_dataset[i]
+                input_seq, target_seq = test_dataset[np.random.randint(0, len(test_dataset))]
 
                 input_seq = input_seq.to(device)
                 target_seq = target_seq.to(device).long()
@@ -266,12 +276,34 @@ if __name__ == '__main__':
                 output_list = torch.argmax(output, dim=-1).detach().cpu().tolist()
                 target_seq_list = target_seq.cpu().tolist()
 
+                all_predictions.append(output_list[0])
+                all_targets.append(target_seq_list[0])
+
                 for i in range(len(output_list)):
                     a = target_seq_list[i]
                     b = output_list[i]
                     Ma = a.index(1) if 1 in a else len(a)
                     Mb = b.index(1) if 1 in b else len(b)
                     dist_test += edit_distance(a[:Ma], b[:Mb]) / len(output_list)
+            import matplotlib.pyplot as plt
+
+            # Flatten the lists of predictions and targets
+            # flat_predictions = [item for sublist in all_predictions for item in sublist]
+            # flat_targets = [item for sublist in all_targets for item in sublist]
+
+            # Compute the confusion matrix
+            # cm, classes = confusion_matrix(all_targets, all_predictions)
+            #
+            # # Plot the confusion matrix
+            # plt.figure()
+            # plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+            # plt.colorbar()
+            # plt.xticks(range(len(classes)), [chr(94 + c) for c in classes], rotation=45)
+            # plt.yticks(range(len(classes)), [chr(94 + c) for c in classes])
+            # plt.xlabel('Predicted label')
+            # plt.ylabel('True label')
+            # plt.title('Confusion Matrix')
+            # plt.show()
 
         avg_test_loss = running_loss_test / len(test_dataloader)
         avg_test_dist = dist_test / len(test_dataloader)

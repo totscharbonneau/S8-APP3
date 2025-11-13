@@ -23,9 +23,29 @@ def edit_distance(a,b):
 
     return dp[len_a - 1][len_b - 1]
 
-def confusion_matrix(true, pred, ignore=[]):
+def confusion_matrix(true, pred, ignore=[0, 1, 2], num_classes=None): # Ignore padding and start/end tokens
     # Calcul de la matrice de confusion
 
-    # À compléter
+    all_true = []
+    all_pred = []
+    for i in range(len(true)):
+        for j in range(min(len(true[i]), len(pred[i]))):
+            if true[i][j] not in ignore:  # only ignore as input
+                all_true.append(true[i][j])
+                all_pred.append(pred[i][j])
 
-    return None
+    # automatically infer class count if not provided
+    if num_classes is None:
+        num_classes = max(max(all_true, default=0), max(all_pred, default=0)) + 1
+
+    # initialize full confusion matrix
+    cm = np.zeros((num_classes, num_classes), dtype=int)
+
+    # fill matrix
+    for t, p in zip(all_true, all_pred):
+        cm[t, p] += 1
+
+    classes = list(range(num_classes))
+    cm = cm[3:, 3:]
+    classes = classes[3:]
+    return cm, classes
